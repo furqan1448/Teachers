@@ -95,7 +95,7 @@ $("form").onsubmit = async e => {
 
 const SECTIONS = [
   ["بياناتي", "👤", "data"], ["شهادتي", "🎓", "cert"],
-  ["ملاحظات المشرفة", "📝", "soon"], ["محاضر الاجتماعات", "📋", "soon"],
+  ["ملاحظات المشرفة", "📝", "notes"], ["محاضر الاجتماعات", "📋", "soon"],
   ["الرسائل والتنبيهات", "🔔", "soon"]
 ];
 function home() {
@@ -119,10 +119,24 @@ function open(i) {
     <div>فئة التدريس: <span class="d">${T.category}</span></div>
     <div>سائلين الله لها التوفيق والسداد<br>وأن يجعل القرآن حجةً لها لا عليها.</div></div></div>
     <div style="text-align:center;margin:16px"><button class="btn" id="pdf">تحميل PDF</button></div>`;
+  else if (kind === "notes") html = `<div class="card"><h2>ملاحظات المشرفة</h2><div id="nl" class="soon">جارٍ التحميل...</div></div>`;
   else html = `<div class="card"><h2>${title}</h2><p class="soon">هذه الخدمة ستتوفر قريبًا.</p></div>`;
   $("app").innerHTML = back + html;
   $("bk").onclick = home;
   if (kind === "cert") { fitCert(); $("pdf").onclick = pdf; }
+  if (kind === "notes") loadNotes();
+}
+const esc = t => String(t || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+async function loadNotes() {
+  const box = $("nl");
+  try {
+    const r = await api({ action: "notes", token: localStorage.getItem("tp_token") });
+    if (!r.ok) { if (r.auth) return logout(); box.textContent = r.error; return; }
+    if (!r.items.length) { box.textContent = "لا توجد ملاحظات جديدة."; return; }
+    box.className = "";
+    box.innerHTML = r.items.map(x => `<div class="row" style="display:block"><span>${esc(x.date)} — ${esc(x.center)}${x.supervisor ? " — " + esc(x.supervisor) : ""}</span>
+      ${x.notes ? `<p><b>الملاحظات:</b> ${esc(x.notes)}</p>` : ""}${x.recs ? `<p><b>التوصيات:</b> ${esc(x.recs)}</p>` : ""}</div>`).join("");
+  } catch (_) { box.textContent = "تعذر الاتصال. حاولي مرة أخرى."; }
 }
 function fitCert() {
   const c = $("cert"); if (c) c.style.setProperty("--cs", Math.round(c.offsetWidth * 0.04) + "px");
